@@ -6,8 +6,8 @@
 <title>Kira Jualan Kedai</title>
 <style>
 :root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
---bg:#faf6ef;--card:#fff;--ink:#2b2118;--mute:#7a6c5d;--line:#eadfce;--brand:#c2410c;--brandink:#fff;--good:#15803d;--soft:#fdf0e2;--bad:#dc2626}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){color-scheme:dark;--bg:#1b1612;--card:#262019;--ink:#f3ebe0;--mute:#b3a493;--line:#3a3128;--brand:#f97316;--brandink:#1b1612;--good:#4ade80;--soft:#33291f;--bad:#f87171}}
+--bg:#faf6ef;--card:#fff;--ink:#2b2118;--mute:#7a6c5d;--line:#eadfce;--brand:#c2410c;--brandink:#fff;--good:#15803d;--soft:#fdf0e2;--bad:#dc2626;--warn:#b45309}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){color-scheme:dark;--bg:#1b1612;--card:#262019;--ink:#f3ebe0;--mute:#b3a493;--line:#3a3128;--brand:#f97316;--brandink:#1b1612;--good:#4ade80;--soft:#33291f;--bad:#f87171;--warn:#fbbf24}}
 *,*:before,*:after{box-sizing:inherit}
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
 body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding-bottom:84px}
@@ -19,9 +19,10 @@ h1{font-size:20px;margin:4px 0 12px}
 .sum .big{grid-column:1/-1;background:var(--brand);color:var(--brandink);border:0}
 .lbl{font-size:12px;color:var(--mute)}.big .lbl{color:inherit;opacity:.85}
 .num{font-size:22px;font-weight:700}.big .num{font-size:30px}
+.sm{font-size:13px;color:var(--mute)}
 .good{color:var(--good)}.big .good{color:inherit}
-input,button,textarea{font:inherit}
-input,textarea{width:100%;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink)}
+input,button,textarea,select{font:inherit}
+input,textarea,select{width:100%;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink)}
 button{border:0;border-radius:10px;padding:10px 14px;background:var(--brand);color:var(--brandink);font-weight:600;cursor:pointer}
 button.sec{background:var(--soft);color:var(--ink)}button.del{background:transparent;color:var(--bad);padding:6px 10px;flex:0 0 auto}
 button.yes{background:var(--bad);color:#fff;padding:6px 10px;flex:0 0 auto}
@@ -42,6 +43,7 @@ h2{font-size:16px;margin:16px 0 8px}
 .warn{font-size:13px;color:var(--bad);margin:0 0 8px}
 .ban{background:var(--bad);color:#fff;border-radius:10px;padding:8px 12px;margin-bottom:10px;font-size:14px}
 .hist{cursor:pointer}
+.cl{display:flex;justify-content:space-between;padding:3px 0;font-size:15px}
 .ov{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:50;overflow:auto;padding:14px;padding-top:calc(14px + env(safe-area-inset-top,0px))}
 .rc{max-width:420px;margin:0 auto;background:#fff;color:#111;border-radius:12px;padding:18px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:14px}
 .rc .c{text-align:center;color:#555;font-size:12px}
@@ -49,10 +51,11 @@ h2{font-size:16px;margin:16px 0 8px}
 .rc table td,.rc table th{border-bottom:0;padding:3px 2px;font-size:13px}
 .rc .tot{display:flex;justify-content:space-between;font-weight:700;font-size:16px}
 .rc input{background:#fff;color:#111;border:1px dashed #999;text-align:center;padding:4px}
-.acts{max-width:420px;margin:10px auto 0;display:flex;gap:8px}.acts button{flex:1}
-.ovh{max-width:420px;margin:8px auto 0;color:#fff;font-size:12px;text-align:center}
+.acts{max-width:420px;margin:10px auto 0;display:flex;gap:8px;flex-wrap:wrap}.acts button{flex:1;min-width:120px}
+.ovh{max-width:420px;margin:8px auto 0;color:#fff;font-size:13px;text-align:center}
 @media print{body>*:not(.ov){display:none!important}.ov{position:static;background:none;padding:0}.acts,.ovh{display:none}.rc input{border:0}}
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
 <div class="wrap">
@@ -65,38 +68,52 @@ h2{font-size:16px;margin:16px 0 8px}
 <button data-t="m">🧾 Menu</button>
 <button data-t="h">📊 Rekod</button>
 </nav>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
 const KEY='kedai_v1';
-const DEF_EMAIL='afauzan941@gmail.com';
-let DL=null;try{claude.use('downloads').then(x=>{DL=x}).catch(()=>{})}catch(e){}
 const today=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
 let S=load(),tab='d',date=today(),pend=null,msg='',rstPend=false;
 function load(){try{const r=localStorage.getItem(KEY);if(r){const o=JSON.parse(r);if(o&&Array.isArray(o.items)&&o.days)return o}}catch(e){}
 return{margin:0.5,days:{},items:[
 {id:1,name:'Karipap',sup:'Kak Ani',cost:0.8,m:0.5},
 {id:2,name:'Kuih Lapis',sup:'Mak Cik Som',cost:0.7,m:0.5},
-{id:3,name:'Nasi Lemak',sup:'Kak Ros',cost:1.5,m:0.5}]}}
+{id:3,name:'Nasi Lemak',sup:'Kak Ros',cost:1.5,m:0.5},
+{id:4,name:'Teh Ais',type:'air',price:2,cost:0}]}}
 function save(){let ok=true;try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){ok=false}
-  $('#bn').innerHTML=ok?'':'<div class="ban">⚠ Data tidak dapat disimpan di telefon ini. Guna butang Salin data di tab Rekod untuk backup.</div>'}
+  $('#bn').innerHTML=ok?'':'<div class="ban">⚠ Data tidak dapat disimpan di telefon ini. Guna Salin data di tab Rekod untuk backup.</div>'}
 const rm=n=>'RM'+(+n||0).toFixed(2);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const $=s=>document.querySelector(s);
+const isAir=it=>it.type==='air';
 const sk=it=>(it.sup||'').trim().toLowerCase();
 const sn=it=>(it.sup||'').trim()||'(Tiada nama)';
 const P=(it,r)=>({c:r&&r.c!=null?r.c:it.cost,m:r&&r.m!=null?r.m:it.m});
 const num=v=>Math.max(0,parseFloat(v)||0);
 const filled=r=>r&&r.i!==''&&r.i!=null&&r.l!==''&&r.l!=null;
+const afilled=r=>r&&r.q!==''&&r.q!=null;
+const airP=(it,r)=>r&&r.p!=null?num(r.p):num(it.price);
+const airK=(it,r)=>r&&r.k!=null?num(r.k):num(it.cost);
 
 function calc(day){
-  let sales=0,profit=0,pay=0,bySup={};
+  let sales=0,profit=0,pay=0,bySup={},fq=0,fs=0,aq=0,as2=0;
   S.items.forEach(it=>{
-    const r=(day||{})[it.id];if(!filled(r))return;
+    const r=(day||{})[it.id];
+    if(isAir(it)){
+      if(!afilled(r))return;
+      const q=num(r.q),p=airP(it,r),k=airK(it,r);
+      aq+=q;as2+=q*p;sales+=q*p;profit+=q*(p-k);return;
+    }
+    if(!filled(r))return;
     const p=P(it,r),sold=Math.max(0,num(r.i)-num(r.l));
-    sales+=sold*(p.c+p.m);pay+=sold*p.c;profit+=sold*p.m;
+    fq+=sold;fs+=sold*(p.c+p.m);sales+=sold*(p.c+p.m);pay+=sold*p.c;profit+=sold*p.m;
     if(sold>0){const k=sk(it);const o=bySup[k]||(bySup[k]={n:sn(it),a:0});o.a+=sold*p.c}
   });
-  return{sales,profit,pay,bySup};
+  return{sales,profit,pay,bySup,fq,fs,aq,as:as2};
+}
+function cashCalc(day,c){
+  const k=(day||{})._cash||{};
+  const o=num(k.o),on=num(k.on),out=num(k.out),exp=o+c.sales-on-out;
+  const has=k.c!==''&&k.c!=null&&k.c!==undefined;
+  return{o,on,out,exp,has,cnt:num(k.c),diff:has?num(k.c)-exp:null,any:!!(k.o||k.on||k.out||has)};
 }
 
 function render(){
@@ -105,39 +122,65 @@ function render(){
 }
 
 function daily(){
-  const day=S.days[date]||(S.days[date]={});
+  const day=S.days[date]||(S.days[date]={});const k=day._cash||{};
+  const foods=S.items.filter(it=>!isAir(it)&&(!it.del||filled(day[it.id])));
+  const airs=S.items.filter(it=>isAir(it)&&(!it.del||afilled(day[it.id])));
   let h=`<div class="card"><div class="field"><span>Tarikh</span><input type="date" id="dt" value="${date}"></div></div>
-  <div class="sum"><div class="card big"><div class="lbl">Jumlah Jualan</div><div class="num" id="tS">RM0.00</div></div>
+  <div class="sum"><div class="card big"><div class="lbl">Jumlah Jualan (makanan + air)</div><div class="num" id="tS">RM0.00</div></div>
   <div class="card"><div class="lbl">Untung Kedai</div><div class="num good" id="tP">RM0.00</div></div>
-  <div class="card"><div class="lbl">Bayar Supplier</div><div class="num" id="tC">RM0.00</div></div></div>
+  <div class="card"><div class="lbl">Bayar Supplier</div><div class="num" id="tC">RM0.00</div></div>
+  <div class="card"><div class="lbl">🍢 Makanan terjual</div><div class="num" id="tFq">0</div><div class="sm" id="tFs"></div></div>
+  <div class="card"><div class="lbl">🥤 Air terjual</div><div class="num" id="tAq">0</div><div class="sm" id="tAs"></div></div></div>
+  <div class="card"><b>💵 Kawalan Tunai Kotak Duit</b>
+  <div class="hint">Isi modal awal pagi. Isi bayaran online (QR/e-wallet) dan tunai yang keluar. Bila tutup kedai, kira duit dalam kotak dan isi di bawah.</div>
+  <div class="row"><label class="field"><span>Modal awal (RM)</span><input type="number" inputmode="decimal" min="0" step="0.01" data-c="o" value="${k.o??''}"></label>
+  <label class="field"><span>Bayaran online (RM)</span><input type="number" inputmode="decimal" min="0" step="0.01" data-c="on" value="${k.on??''}"></label></div>
+  <div class="row" style="margin-top:8px"><label class="field"><span>Tunai keluar (RM)</span><input type="number" inputmode="decimal" min="0" step="0.01" data-c="out" value="${k.out??''}"></label>
+  <label class="field"><span>Kiraan akhir hari (RM)</span><input type="number" inputmode="decimal" min="0" step="0.01" data-c="c" value="${k.c??''}"></label></div>
+  <div id="cashr" style="margin-top:10px"></div></div>
   <div class="warn" id="wn"></div>
-  <div class="hint">Isi <b>Dibawa</b> (stok pagi) dan <b>Baki</b> (tak habis jual) bila kedai tutup. Terjual dikira sendiri.</div>`;
-  const list=S.items.filter(it=>!it.del||filled(day[it.id]));
-  if(!list.length)h+='<div class="card">Belum ada menu. Pergi ke tab Menu untuk tambah.</div>';
-  list.forEach(it=>{
+  <div class="hint">Makanan: isi <b>Dibawa</b> (stok pagi) dan <b>Baki</b> (tak habis jual). Terjual dikira sendiri.</div>`;
+  if(!foods.length)h+='<div class="card">Belum ada makanan. Pergi ke tab Menu untuk tambah.</div>';
+  foods.forEach(it=>{
     const r=day[it.id]||{},p=P(it,r);
     h+=`<div class="card item"><div class="top"><div><b>${esc(it.name)}</b><div class="sup">${esc(it.sup||'')}${it.del?' · (dipadam dari menu)':''}</div></div><div class="price">${rm(p.c+p.m)}<div class="sup">asal ${rm(p.c)}</div></div></div>
     <div class="row"><label class="field"><span>Dibawa</span><input type="number" inputmode="decimal" min="0" data-id="${it.id}" data-k="i" value="${r.i??''}"></label>
     <label class="field"><span>Baki</span><input type="number" inputmode="decimal" min="0" data-id="${it.id}" data-k="l" value="${r.l??''}"></label></div>
     <div class="res"><span>Terjual: <b id="s${it.id}">-</b></span><span>Jumlah: <b id="a${it.id}">-</b></span></div></div>`;
   });
+  h+=`<h2>🥤 Air (milik sendiri)</h2><div class="hint">Tak perlu Dibawa dan Baki. Isi harga dan jumlah terjual sahaja.</div>`;
+  if(!airs.length)h+='<div class="card">Belum ada air. Tambah di tab Menu (pilih jenis Air).</div>';
+  airs.forEach(it=>{
+    const r=day[it.id]||{};
+    h+=`<div class="card item"><div class="top"><b>${esc(it.name)}</b><div class="sup">${it.del?'(dipadam dari menu)':'Air sendiri'}</div></div>
+    <div class="row"><label class="field"><span>Harga jual (RM)</span><input type="number" inputmode="decimal" min="0" step="0.05" data-id="${it.id}" data-k="p" value="${r.p!=null?r.p:it.price}"></label>
+    <label class="field"><span>Terjual</span><input type="number" inputmode="decimal" min="0" data-id="${it.id}" data-k="q" value="${r.q??''}"></label></div>
+    <div class="res"><span></span><span>Jumlah: <b id="a${it.id}">-</b></span></div></div>`;
+  });
   h+=`<h2>Bayar kepada Supplier</h2><div class="card"><table id="sup"></table></div>
+  <button id="sa" style="width:100%;margin-bottom:8px">☁ Simpan SEMUA resit supplier ke Drive</button>
+  <div class="hint" id="sam"></div>
   <button class="sec" id="cp" style="width:100%">🧾 Slip / PDF ringkasan</button>`;
   $('#v').innerHTML=h;
   $('#dt').onchange=e=>{date=e.target.value||today();render()};
   document.querySelectorAll('input[data-id]').forEach(el=>el.oninput=()=>{
     const it=S.items.find(x=>x.id==el.dataset.id),d=S.days[date];
     const r=d[it.id]||(d[it.id]={});
-    if(r.c==null){r.c=it.cost;r.m=it.m}
+    if(isAir(it)){if(r.p==null){r.p=it.price;r.k=it.cost||0}}
+    else if(r.c==null){r.c=it.cost;r.m=it.m}
     r[el.dataset.k]=el.value;save();upd()});
+  document.querySelectorAll('input[data-c]').forEach(el=>el.oninput=()=>{
+    const d=S.days[date];(d._cash=d._cash||{})[el.dataset.c]=el.value;save();upd()});
   $('#cp').onclick=showSlip;
+  $('#sa').onclick=async()=>{const b=$('#sa');b.disabled=true;await saveAll($('#sam'));b.disabled=false};
   upd();
 }
 function upd(){
   const day=S.days[date]||{};let inc=0;
   S.items.forEach(it=>{
-    const r=day[it.id]||{},s=$('#s'+it.id),a=$('#a'+it.id);if(!s)return;
-    const ok=filled(r),p=P(it,r);
+    const r=day[it.id]||{},a=$('#a'+it.id);if(!a)return;
+    if(isAir(it)){a.textContent=afilled(r)?rm(num(r.q)*airP(it,r)):'-';return}
+    const s=$('#s'+it.id),ok=filled(r),p=P(it,r);
     if(r.i!==''&&r.i!=null&&(r.l===''||r.l==null))inc++;
     if(!ok){s.textContent='-';a.textContent='-';return}
     const over=num(r.l)>num(r.i),sold=Math.max(0,num(r.i)-num(r.l));
@@ -147,7 +190,17 @@ function upd(){
   });
   const c=calc(day);
   $('#tS').textContent=rm(c.sales);$('#tP').textContent=rm(c.profit);$('#tC').textContent=rm(c.pay);
-  $('#wn').textContent=inc?`⚠ ${inc} item belum diisi Baki, belum dikira.`:'';
+  $('#tFq').textContent=c.fq+' unit';$('#tFs').textContent=rm(c.fs);
+  $('#tAq').textContent=c.aq+' unit';$('#tAs').textContent=rm(c.as);
+  $('#wn').textContent=inc?`⚠ ${inc} makanan belum diisi Baki, belum dikira.`:'';
+  const cs=cashCalc(day,c);
+  let ch=`<div class="cl"><span>Jangkaan tunai dalam kotak</span><b>${rm(cs.exp)}</b></div><div class="sm">= Modal awal + Jualan − Online − Tunai keluar</div>`;
+  if(cs.has){
+    const d=cs.diff,bad=d<-0.005,more=d>0.005;
+    ch+=`<div class="cl"><span>Kiraan sebenar</span><b>${rm(cs.cnt)}</b></div>
+    <div class="cl" style="color:${bad?'var(--bad)':more?'var(--warn)':'var(--good)'}"><b>${bad?'⚠ KURANG':more?'Lebih':'✅ Tally'}</b><b>${d>0?'+':d<0?'−':''}${rm(Math.abs(d))}</b></div>`;
+  }
+  $('#cashr').innerHTML=ch;
   const ks=Object.keys(c.bySup);
   $('#sup').innerHTML=ks.length?'<tr><th>Supplier</th><th>Jumlah</th><th></th></tr>'+ks.map((k,i)=>`<tr><td>${esc(c.bySup[k].n)}</td><td>${rm(c.bySup[k].a)}</td><td><button class="sec" data-r="${i}" style="padding:6px 10px">🧾 Resit</button></td></tr>`).join(''):'<tr><td class="sup">Belum ada jualan dikira.</td></tr>';
   document.querySelectorAll('button[data-r]').forEach(b=>b.onclick=()=>receipt(ks[b.dataset.r],c.bySup[ks[b.dataset.r]].n));
@@ -156,20 +209,33 @@ function copyText(t){
   const ta=document.createElement('textarea');ta.value=t;document.body.appendChild(ta);ta.select();
   let ok=false;try{ok=document.execCommand('copy')}catch(e){}ta.remove();return ok;
 }
+
+/* ---------- Slip ringkasan ---------- */
+const W=32,BAR='-'.repeat(W);
+const ctr=t=>{t=t.slice(0,W);return ' '.repeat(Math.floor((W-t.length)/2))+t};
+const two=(a,b)=>{b=String(b);return a.slice(0,W-b.length-1).padEnd(W-b.length)+b};
+const row3=(n,q,a)=>n.slice(0,15).padEnd(15)+String(q).padStart(5)+a.toFixed(2).padStart(12);
 function slipLines(){
-  const day=S.days[date]||{},c=calc(day),W=32,B='-'.repeat(W);
-  const ctr=t=>{t=t.slice(0,W);return ' '.repeat(Math.floor((W-t.length)/2))+t};
-  const two=(a,b)=>{b=String(b);return a.slice(0,W-b.length-1).padEnd(W-b.length)+b};
-  const L=[ctr((S.shop||'').trim()||'KEDAI'),ctr('RINGKASAN JUALAN HARIAN'),B,'Tarikh: '+date,B,'ITEM'.padEnd(15)+'QTY'.padStart(5)+'RM'.padStart(12)];
-  let n=0;
-  S.items.forEach(it=>{const r=day[it.id];if(!filled(r))return;const p=P(it,r),q=Math.max(0,num(r.i)-num(r.l));if(!q)return;n++;
-    L.push(it.name.slice(0,15).padEnd(15)+String(q).padStart(5)+(q*(p.c+p.m)).toFixed(2).padStart(12))});
-  if(!n)L.push('Tiada jualan dikira');
-  L.push(B,two('JUMLAH JUALAN',rm(c.sales)),two('Untung',rm(c.profit)),two('Bayar supplier',rm(c.pay)),B,'BAYAR SUPPLIER:');
+  const day=S.days[date]||{},c=calc(day),cs=cashCalc(day,c);
+  const L=[ctr((S.shop||'').trim()||'KEDAI'),ctr('RINGKASAN JUALAN HARIAN'),BAR,'Tarikh: '+date,BAR,'ITEM'.padEnd(15)+'QTY'.padStart(5)+'RM'.padStart(12)];
+  const fr=[],ar=[];
+  S.items.forEach(it=>{const r=day[it.id];
+    if(isAir(it)){if(!afilled(r))return;const q=num(r.q);if(q)ar.push(row3(it.name,q,q*airP(it,r)));return}
+    if(!filled(r))return;const p=P(it,r),q=Math.max(0,num(r.i)-num(r.l));if(q)fr.push(row3(it.name,q,q*(p.c+p.m)))});
+  if(!fr.length&&!ar.length)L.push('Tiada jualan dikira');
+  if(fr.length)L.push('MAKANAN',...fr);
+  if(ar.length)L.push('AIR',...ar);
+  L.push(BAR,two('Makanan terjual',c.fq+' unit'),two('Air terjual',c.aq+' unit'),BAR,
+    two('JUMLAH JUALAN',rm(c.sales)),two('Untung',rm(c.profit)),two('Bayar supplier',rm(c.pay)));
+  if(cs.any){
+    L.push(BAR,'TUNAI KOTAK DUIT',two('Modal awal',rm(cs.o)),two('Bayaran online',rm(cs.on)),two('Tunai keluar',rm(cs.out)),two('Jangkaan tunai',rm(cs.exp)));
+    if(cs.has)L.push(two('Kiraan sebenar',rm(cs.cnt)),two(cs.diff<-0.005?'KURANG':cs.diff>0.005?'LEBIH':'TALLY',(cs.diff<0?'-':'')+rm(Math.abs(cs.diff))));
+  }
+  L.push(BAR,'BAYAR SUPPLIER:');
   const ks=Object.values(c.bySup);
   if(!ks.length)L.push('-');
   ks.forEach(o=>L.push(two(o.n,rm(o.a))));
-  L.push(B,ctr('Terima kasih'));
+  L.push(BAR,ctr('Terima kasih'));
   return L;
 }
 function makePDF(lines){
@@ -179,6 +245,8 @@ function makePDF(lines){
   lines.forEach((t,i)=>doc.text(t.replace(/[^\x20-\x7E]/g,'?'),3,6+i*lh));
   return doc.output('arraybuffer');
 }
+
+/* ---------- Google Drive ---------- */
 const dcfg=()=>{try{return JSON.parse(localStorage.getItem('kedai_drive')||'{}')}catch(e){return{}}};
 const dsave=c=>{try{localStorage.setItem('kedai_drive',JSON.stringify(c))}catch(e){}};
 function b64(buf){const u=new Uint8Array(buf);let s='';for(let i=0;i<u.length;i+=32768)s+=String.fromCharCode.apply(null,u.subarray(i,i+32768));return btoa(s)}
@@ -186,125 +254,192 @@ async function post(body){
   const r=await fetch(dcfg().url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body)});
   return r.json();
 }
-async function savePDF(buf,filename){
-  if(DL){await DL.save({filename,data:buf});return}
-  const u=URL.createObjectURL(new Blob([buf],{type:'application/pdf'}));
-  const a=document.createElement('a');a.href=u;a.download=filename;document.body.appendChild(a);a.click();a.remove();
-  setTimeout(()=>URL.revokeObjectURL(u),4000);
-}
-async function toDrive(buf,filename,folder,st){
+async function toDrive(buf,filename,folder){
   const c=dcfg();
-  if(!c.url||!c.key){st.textContent='Tetapan Drive belum diisi. Pergi tab Rekod, bahagian Tetapan Google Drive.';return}
-  st.textContent='Menghantar ke Drive...';
+  if(!c.url||!c.key)return{ok:false,msg:'Tetapan Drive belum diisi. Pergi tab Rekod, bahagian Tetapan Google Drive.'};
   try{
     const j=await post({key:c.key,filename,folder,data:b64(buf)});
-    st.textContent=j.ok?'✅ Disimpan dalam Drive: '+j.path:'Gagal: '+(j.error||'tidak diketahui');
-  }catch(e){st.textContent='Gagal sambung ke Drive. Semak URL dan internet.'}
+    return j.ok?{ok:true,msg:'✅ Disimpan dalam Drive: '+j.path}:{ok:false,msg:'Gagal: '+(j.error||'tidak diketahui')};
+  }catch(e){return{ok:false,msg:'Gagal sambung ke Drive. Semak URL dan internet.'}}
 }
+const folderOf=n=>'Kedai Makan/Resit Supplier/'+String(n).replace(/[\/\\]/g,' ');
+async function saveAll(st){
+  const c=calc(S.days[date]||{}),ks=Object.keys(c.bySup);
+  if(!ks.length){st.textContent='Tiada resit untuk disimpan.';return}
+  let ok=0,bad=[],last='';
+  for(let i=0;i<ks.length;i++){
+    const d=rcData(ks[i],c.bySup[ks[i]].n);
+    st.textContent=`Menghantar ${i+1}/${ks.length}: ${d.name}...`;
+    const r=await toDrive(makePDF(rcLines(d)),'resit-'+d.no+'.pdf',folderOf(d.name));
+    if(r.ok)ok++;else{bad.push(d.name);last=r.msg;if(/belum diisi|sambung/.test(r.msg))break}
+  }
+  st.textContent=bad.length?`${ok}/${ks.length} disimpan. Gagal: ${bad.join(', ')}. ${last}`:`✅ ${ok}/${ks.length} resit disimpan ke Drive, dalam folder setiap supplier.`;
+}
+
+/* ---------- Cetak (Bluetooth / dialog biasa) ---------- */
+const SV=['000018f0-0000-1000-8000-00805f9b34fb','0000ff00-0000-1000-8000-00805f9b34fb','0000ffe0-0000-1000-8000-00805f9b34fb','49535343-fe7d-4ae5-8fa9-9fafd205e455','e7810a71-73ae-499d-8c15-faa9aef0c3f2','0000fee7-0000-1000-8000-00805f9b34fb'];
+async function doPrint(lines,st){
+  if(!navigator.bluetooth){try{window.print()}catch(e){}return}
+  let dev;
+  try{
+    st.textContent='Pilih printer Bluetooth anda...';
+    dev=await navigator.bluetooth.requestDevice({acceptAllDevices:true,optionalServices:SV});
+    st.textContent='Menyambung ke '+(dev.name||'printer')+'...';
+    const g=await dev.gatt.connect();let ch=null;
+    for(const sv of await g.getPrimaryServices()){
+      for(const c of await sv.getCharacteristics()){if(c.properties.write||c.properties.writeWithoutResponse){ch=c;break}}
+      if(ch)break;
+    }
+    if(!ch)throw new Error('tiada-tulis');
+    const bytes=Array.from(lines.join('\n')).map(c=>{const n=c.charCodeAt(0);return(n>=32&&n<127)||n===10?n:63});
+    const data=new Uint8Array([0x1B,0x40,...bytes,10,10,10,10]);
+    for(let i=0;i<data.length;i+=100){
+      const part=data.slice(i,i+100);
+      if(ch.properties.writeWithoutResponse)await ch.writeValueWithoutResponse(part);else await ch.writeValue(part);
+      await new Promise(r=>setTimeout(r,30));
+    }
+    st.textContent='✅ Dicetak ke '+(dev.name||'printer')+'.';
+  }catch(e){
+    st.textContent=e&&e.name==='NotFoundError'?'Pilihan printer dibatalkan.':'Gagal cetak. Pastikan printer dihidupkan dan jenis Bluetooth LE. Cuba Dialog biasa atau PDF.';
+  }finally{try{if(dev&&dev.gatt.connected)dev.gatt.disconnect()}catch(e){}}
+}
+async function pdfOut(buf,filename,share){
+  const f=new File([buf],filename,{type:'application/pdf'});
+  if(share&&navigator.canShare&&navigator.canShare({files:[f]})){
+    try{await navigator.share({files:[f],title:filename});return'dikongsi'}catch(e){if(e&&e.name==='AbortError')return'batal'}
+  }
+  const u=URL.createObjectURL(f);
+  const a=document.createElement('a');a.href=u;a.download=filename;document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(u),4000);return'dimuat';
+}
+const BTN=()=>navigator.bluetooth?'<button class="sec" id="rp2">🖨 Dialog biasa</button>':'';
+
 function showSlip(){
   const can=!!window.jspdf;
   const o=document.createElement('div');o.className='ov';
   o.innerHTML=`<div class="acts" style="margin:0 auto 10px"><input id="shop" placeholder="Nama kedai (untuk slip)" value="${esc(S.shop||'')}"></div>
   <div class="rc"><pre id="pre" style="margin:0;font-size:13px;line-height:1.35;white-space:pre;overflow-x:auto"></pre></div>
-  <div class="acts"><button id="rp">🖨 Cetak slip</button>${can?'<button id="dv">☁ Simpan ke Drive</button>':''}</div>
-  <div class="acts">${can?'<button class="sec" id="pdf">📄 PDF</button>':''}<button class="sec" id="rc2">📋 Salin</button><button class="sec" id="rx">Tutup</button></div>
-  <div class="ovh" id="st">${can?'':'PDF tidak tersedia di sini. '}Kalau Cetak tak berfungsi, guna PDF atau screenshot.</div>`;
+  <div class="acts"><button id="rp">🖨 Cetak</button>${BTN()}</div>
+  <div class="acts">${can?'<button id="dv">☁ Simpan ke Drive</button><button class="sec" id="pdf">📄 PDF</button>':''}<button class="sec" id="rc2">📋 Salin</button><button class="sec" id="rx">Tutup</button></div>
+  <div class="ovh" id="st">${navigator.bluetooth?'Tekan Cetak untuk pilih printer Bluetooth.':'Tekan Cetak untuk buka dialog cetak.'}</div>`;
   document.body.appendChild(o);
   const pre=o.querySelector('#pre'),sh=o.querySelector('#shop'),st=o.querySelector('#st');
   const draw=()=>{pre.textContent=slipLines().join('\n')};draw();
   sh.oninput=()=>{S.shop=sh.value;save();draw()};
   o.querySelector('#rx').onclick=()=>o.remove();
-  o.querySelector('#rp').onclick=()=>{try{window.print()}catch(e){}};
-  o.querySelector('#rc2').onclick=()=>{st.textContent=copyText(slipLines().join('\n'))?'✅ Disalin!':'Gagal salin. Guna PDF atau screenshot.'};
+  o.querySelector('#rp').onclick=()=>doPrint(slipLines(),st);
+  const r2=o.querySelector('#rp2');if(r2)r2.onclick=()=>{try{window.print()}catch(e){}};
+  o.querySelector('#rc2').onclick=()=>{st.textContent=copyText(slipLines().join('\n'))?'✅ Disalin!':'Gagal salin.'};
   const pb=o.querySelector('#pdf');
-  if(pb)pb.onclick=async()=>{
-    try{await savePDF(makePDF(slipLines()),'ringkasan-'+date+'.pdf');st.textContent='✅ PDF disimpan.'}
-    catch(e){st.textContent=e&&e.code==='declined'?'Simpan dibatalkan.':'PDF gagal disimpan. Guna Cetak atau screenshot.'}
-  };
+  if(pb)pb.onclick=async()=>{try{await pdfOut(makePDF(slipLines()),'ringkasan-'+date+'.pdf',false);st.textContent='✅ PDF siap.'}catch(e){st.textContent='PDF gagal.'}};
   const dv=o.querySelector('#dv');
-  if(dv)dv.onclick=()=>toDrive(makePDF(slipLines()),'ringkasan-'+date+'.pdf','Kedai Makan/Ringkasan Harian',st);
+  if(dv)dv.onclick=async()=>{st.textContent='Menghantar ke Drive...';st.textContent=(await toDrive(makePDF(slipLines()),'ringkasan-'+date+'.pdf','Kedai Makan/Ringkasan Harian')).msg};
 }
 
-function receipt(key,name){
-  const day=S.days[date]||{};let rows='',tot=0,lines=[],pl=[];
-  S.items.filter(it=>sk(it)===key).forEach(it=>{
+/* ---------- Resit supplier ---------- */
+function rcData(key,name){
+  const day=S.days[date]||{};let rows='',tot=0,units=0,lines=[],pl=[];
+  S.items.filter(it=>!isAir(it)&&sk(it)===key).forEach(it=>{
     const r=day[it.id];if(!filled(r))return;
     const q=Math.max(0,num(r.i)-num(r.l));if(!q)return;
-    const c=P(it,r).c,a=q*c;tot+=a;
+    const c=P(it,r).c,a=q*c;tot+=a;units+=q;
     lines.push(`${it.name} x${q} @${c.toFixed(2)} = ${a.toFixed(2)}`);
-    pl.push(it.name.slice(0,15).padEnd(15)+String(q).padStart(5)+a.toFixed(2).padStart(12));
+    pl.push(row3(it.name,q,a));
     rows+=`<tr><td>${esc(it.name)}</td><td style="text-align:center">${q}</td><td style="text-align:center">${c.toFixed(2)}</td><td style="text-align:right">${a.toFixed(2)}</td></tr>`;
   });
-  const code=(key.replace(/[^a-z0-9]/g,'').slice(0,3)||'xxx').toUpperCase();
-  const no='R'+date.replace(/-/g,'')+'-'+code;
-  const can=!!window.jspdf;
+  let hs=0;for(const ch of key)hs=(hs*31+ch.charCodeAt(0))%100;
+  const code=(key.replace(/[^a-z0-9]/g,'').slice(0,3)||'xxx').toUpperCase()+String(hs).padStart(2,'0');
+  return{key,name,tot,units,lines,pl,rows,no:'R'+date.replace(/-/g,'')+'-'+code};
+}
+function rcLines(d){
+  return[ctr((S.shop||'').trim()||'KEDAI'),ctr('RESIT BAYARAN SUPPLIER'),BAR,'No: '+d.no,'Tarikh: '+date,'Supplier: '+d.name.slice(0,22),BAR,'ITEM'.padEnd(15)+'QTY'.padStart(5)+'RM'.padStart(12),...d.pl,BAR,two('JUMLAH UNIT',d.units),two('JUMLAH BAYAR',rm(d.tot)),BAR,'','','_________   _________','Dibayar     Diterima'];
+}
+function receipt(key,name){
+  const d=rcData(key,name),can=!!window.jspdf;
   const o=document.createElement('div');o.className='ov';
   o.innerHTML=`<div class="rc"><input id="shop" placeholder="Nama kedai" value="${esc(S.shop||'')}" style="width:100%;font-weight:700;font-size:17px"><div class="c">RESIT BAYARAN SUPPLIER</div><hr>
-  <div>No: ${no}</div><div>Tarikh: ${date}</div><div>Supplier: <b>${esc(name)}</b></div><hr>
-  <table><tr><th style="text-align:left">Item</th><th>Qty</th><th>Harga</th><th style="text-align:right">RM</th></tr>${rows}</table><hr>
-  <div class="tot"><span>JUMLAH BAYAR</span><span>${rm(tot)}</span></div><hr>
+  <div>No: ${d.no}</div><div>Tarikh: ${date}</div><div>Supplier: <b>${esc(name)}</b></div><hr>
+  <table><tr><th style="text-align:left">Item</th><th>Qty</th><th>Harga</th><th style="text-align:right">RM</th></tr>${d.rows}</table><hr>
+  <div style="display:flex;justify-content:space-between"><span>Jumlah unit terjual</span><span>${d.units}</span></div>
+  <div class="tot"><span>JUMLAH BAYAR</span><span>${rm(d.tot)}</span></div><hr>
   <div style="display:flex;justify-content:space-between;margin-top:34px;font-size:12px"><span>_____________<br>Dibayar oleh</span><span style="text-align:right">_____________<br>Diterima oleh</span></div></div>
-  <div class="acts"><button id="rp">🖨 Cetak</button>${can?'<button id="pdf">📄 PDF (WhatsApp)</button>':''}</div>
-  <div class="acts"><button class="sec" id="rc2">📋 Salin</button><button class="sec" id="rx">Tutup</button></div>
-  <div class="ovh" id="st">${can?'':'PDF tidak tersedia di sini. '}Kalau Cetak tak berfungsi, guna Salin atau screenshot.</div>`;
+  <div class="acts"><button id="rp">🖨 Cetak</button>${BTN()}</div>
+  <div class="acts">${can?'<button id="dv">☁ Simpan ke Drive</button><button class="sec" id="pdf">📄 PDF (WhatsApp)</button>':''}<button class="sec" id="rc2">📋 Salin</button><button class="sec" id="rx">Tutup</button></div>
+  <div class="ovh" id="st">${can?'Drive akan simpan dalam folder supplier ini.':'PDF tidak tersedia di sini.'}</div>`;
   document.body.appendChild(o);
   const sh=o.querySelector('#shop'),st=o.querySelector('#st');sh.oninput=()=>{S.shop=sh.value;save()};
-  const rcLines=()=>{const W=32,B='-'.repeat(W);
-    const ctr=t=>{t=t.slice(0,W);return ' '.repeat(Math.floor((W-t.length)/2))+t};
-    const two=(a,b)=>a.slice(0,W-b.length-1).padEnd(W-b.length)+b;
-    return[ctr((S.shop||'').trim()||'KEDAI'),ctr('RESIT BAYARAN SUPPLIER'),B,'No: '+no,'Tarikh: '+date,'Supplier: '+name.slice(0,22),B,'ITEM'.padEnd(15)+'QTY'.padStart(5)+'RM'.padStart(12),...pl,B,two('JUMLAH BAYAR',rm(tot)),B,'','','_________   _________','Dibayar     Diterima'];};
   o.querySelector('#rx').onclick=()=>o.remove();
-  o.querySelector('#rp').onclick=()=>{try{window.print()}catch(e){}};
+  o.querySelector('#rp').onclick=()=>doPrint(rcLines(d),st);
+  const r2=o.querySelector('#rp2');if(r2)r2.onclick=()=>{try{window.print()}catch(e){}};
   o.querySelector('#rc2').onclick=()=>{
-    const ok=copyText(`${S.shop||'Kedai'}\nRESIT BAYARAN SUPPLIER\nNo: ${no}\nTarikh: ${date}\nSupplier: ${name}\n\n${lines.join('\n')}\n\nJUMLAH BAYAR: ${rm(tot)}`);
-    st.textContent=ok?'✅ Disalin!':'Gagal salin. Guna PDF atau screenshot.';
+    st.textContent=copyText(`${S.shop||'Kedai'}\nRESIT BAYARAN SUPPLIER\nNo: ${d.no}\nTarikh: ${date}\nSupplier: ${name}\n\n${d.lines.join('\n')}\n\nJumlah unit: ${d.units}\nJUMLAH BAYAR: ${rm(d.tot)}`)?'✅ Disalin!':'Gagal salin.';
   };
   const pb=o.querySelector('#pdf');
   if(pb)pb.onclick=async()=>{
-    try{await savePDF(makePDF(rcLines()),'resit-'+no+'.pdf');st.textContent='✅ PDF disimpan. Buka WhatsApp dan lampirkan fail itu.'}
-    catch(e){st.textContent=e&&e.code==='declined'?'Simpan dibatalkan.':'PDF gagal disimpan. Guna Cetak atau screenshot.'}
+    try{const r=await pdfOut(makePDF(rcLines(d)),'resit-'+d.no+'.pdf',true);st.textContent=r==='batal'?'Dibatalkan.':r==='dikongsi'?'✅ Dikongsi.':'✅ PDF dimuat turun. Lampirkan dalam WhatsApp.'}
+    catch(e){st.textContent='PDF gagal.'}
   };
+  const dv=o.querySelector('#dv');
+  if(dv)dv.onclick=async()=>{st.textContent='Menghantar ke Drive...';st.textContent=(await toDrive(makePDF(rcLines(d)),'resit-'+d.no+'.pdf',folderOf(name))).msg};
 }
 
+/* ---------- Menu ---------- */
 function menu(){
-  let h=`<div class="card"><b>Tambah makanan / kuih</b>
+  let h=`<div class="card"><b>Tambah item</b>
   <div style="display:grid;gap:8px;margin-top:8px">
-  <input id="n" placeholder="Nama (cth: Donut)"><input id="s" placeholder="Nama supplier (cth: Kak Ani)">
+  <select id="ty"><option value="food">Makanan / kuih (ada supplier)</option><option value="air">Air (milik sendiri)</option></select>
+  <input id="n" placeholder="Nama (cth: Donut)">
+  <div id="fd" style="display:grid;gap:8px"><input id="s" placeholder="Nama supplier (cth: Kak Ani)">
   <div class="row"><label class="field"><span>Harga asal (RM)</span><input id="c" type="number" step="0.05" min="0" inputmode="decimal"></label>
   <label class="field"><span>Untung (RM)</span><input id="m" type="number" step="0.05" min="0" inputmode="decimal" value="${S.margin}"></label></div>
-  <div class="hint" id="pv" style="margin:0">Harga jual = harga asal + untung</div>
+  <div class="hint" id="pv" style="margin:0">Harga jual = harga asal + untung</div></div>
+  <div id="ai" style="display:none"><div class="row"><label class="field"><span>Harga jual (RM)</span><input id="ap" type="number" step="0.05" min="0" inputmode="decimal"></label>
+  <label class="field"><span>Kos seunit (pilihan)</span><input id="ak" type="number" step="0.05" min="0" inputmode="decimal"></label></div></div>
   <div class="warn" id="er">${esc(msg)}</div>
   <button id="add">+ Tambah</button></div></div><h2>Senarai Menu</h2>`;
   msg='';
   const list=S.items.filter(it=>!it.del);
   if(!list.length)h+='<div class="card">Menu kosong.</div>';
   list.forEach(it=>{
-    h+=`<div class="card item"><div class="top"><div><b>${esc(it.name)}</b><div class="sup">${esc(it.sup||'')}</div></div>
-    <div class="price" id="pl${it.id}">Jual ${rm(it.cost+it.m)}</div></div>
-    <div class="row"><label class="field"><span>Harga asal</span><input type="number" step="0.05" min="0" data-e="${it.id}" data-k="cost" value="${it.cost}"></label>
-    <label class="field"><span>Untung</span><input type="number" step="0.05" min="0" data-e="${it.id}" data-k="m" value="${it.m}"></label>
+    const a=isAir(it);
+    h+=`<div class="card item"><div class="top"><div><b>${esc(it.name)}</b><div class="sup">${a?'🥤 Air sendiri':esc(it.sup||'')}</div></div>
+    <div class="price" id="pl${it.id}">Jual ${rm(a?it.price:it.cost+it.m)}</div></div>
+    <div class="row"><label class="field"><span>${a?'Harga jual':'Harga asal'}</span><input type="number" step="0.05" min="0" data-e="${it.id}" data-k="${a?'price':'cost'}" value="${a?it.price:it.cost}"></label>
+    <label class="field"><span>${a?'Kos seunit':'Untung'}</span><input type="number" step="0.05" min="0" data-e="${it.id}" data-k="${a?'cost':'m'}" value="${a?(it.cost||0):it.m}"></label>
     ${pend===it.id?`<button class="yes" data-y="${it.id}">Ya, padam</button><button class="sec" id="no" style="flex:0 0 auto;padding:6px 10px">Batal</button>`:`<button class="del" data-d="${it.id}">🗑 Padam</button>`}</div></div>`;
   });
   h+=`<div class="hint">Padam item hanya buang dari menu. Rekod jualan lama kekal.</div>`;
   $('#v').innerHTML=h;
+  const ty=$('#ty');
+  ty.onchange=()=>{$('#fd').style.display=ty.value==='food'?'grid':'none';$('#ai').style.display=ty.value==='air'?'block':'none'};
   const pv=()=>{$('#pv').textContent='Harga jual = '+rm(num($('#c').value)+num($('#m').value))};
   $('#c').oninput=pv;$('#m').oninput=pv;
   $('#add').onclick=()=>{
-    const name=$('#n').value.trim(),cost=parseFloat($('#c').value),m=parseFloat($('#m').value);
-    if(!name||isNaN(cost)||cost<0){$('#er').textContent='Isi nama dan harga asal (tidak boleh negatif).';return}
-    S.margin=isNaN(m)||m<0?0.5:m;
-    S.items.push({id:Date.now(),name,sup:$('#s').value.trim(),cost,m:S.margin});save();render();
+    const name=$('#n').value.trim();
+    if(ty.value==='air'){
+      const price=parseFloat($('#ap').value),cost=parseFloat($('#ak').value)||0;
+      if(!name||isNaN(price)||price<0||cost<0){$('#er').textContent='Isi nama dan harga jual air (tidak boleh negatif).';return}
+      S.items.push({id:Date.now(),name,type:'air',price,cost});
+    }else{
+      const cost=parseFloat($('#c').value),m=parseFloat($('#m').value);
+      if(!name||isNaN(cost)||cost<0){$('#er').textContent='Isi nama dan harga asal (tidak boleh negatif).';return}
+      S.margin=isNaN(m)||m<0?0.5:m;
+      S.items.push({id:Date.now(),name,sup:$('#s').value.trim(),cost,m:S.margin});
+    }
+    save();render();
   };
   document.querySelectorAll('input[data-e]').forEach(el=>el.onchange=()=>{
     const it=S.items.find(x=>x.id==el.dataset.e);it[el.dataset.k]=num(el.value);
-    const t=S.days[today()];if(t&&t[it.id]&&t[it.id].c!=null){t[it.id].c=it.cost;t[it.id].m=it.m}
-    save();$('#pl'+it.id).textContent='Jual '+rm(it.cost+it.m)});
+    const t=S.days[today()],r=t&&t[it.id];
+    if(r){if(isAir(it)){if(r.p!=null){r.p=it.price;r.k=it.cost||0}}else if(r.c!=null){r.c=it.cost;r.m=it.m}}
+    save();$('#pl'+it.id).textContent='Jual '+rm(isAir(it)?it.price:it.cost+it.m)});
   document.querySelectorAll('button[data-d]').forEach(b=>b.onclick=()=>{pend=+b.dataset.d;render()});
   document.querySelectorAll('button[data-y]').forEach(b=>b.onclick=()=>{
     const it=S.items.find(x=>x.id==b.dataset.y);if(it)it.del=true;pend=null;save();render()});
   const no=$('#no');if(no)no.onclick=()=>{pend=null;render()};
 }
 
+/* ---------- Rekod ---------- */
 function history(){
   const keys=Object.keys(S.days).filter(k=>Object.keys(S.days[k]).length).sort().reverse();
   const mon=today().slice(0,7);let ms=0,mp=0,n=0;
@@ -313,13 +448,13 @@ function history(){
   <div class="card"><div class="lbl">Untung bulan ini</div><div class="num good">${rm(mp)}</div></div>
   <div class="card"><div class="lbl">Hari direkod</div><div class="num">${n}</div></div></div><h2>Rekod Harian</h2>`;
   if(!keys.length)h+='<div class="card">Belum ada rekod.</div>';
-  keys.forEach(k=>{const c=calc(S.days[k]);
-    h+=`<div class="card hist" data-k="${k}"><div class="row"><b>${k}</b><span style="text-align:right">${rm(c.sales)}<div class="sup">untung ${rm(c.profit)}</div></span></div></div>`});
-  h+=`<h2>Tetapan Google Drive</h2><div class="card"><div class="hint">Isi sekali sahaja. Resit dan ringkasan akan terus masuk ke Drive akaun Google yang memasang skrip. Untuk tukar email, pasang skrip di akaun baharu dan tampal URL serta kunci baharu di sini.</div>
+  keys.forEach(k=>{const c=calc(S.days[k]),cs=cashCalc(S.days[k],c);
+    const w=cs.has&&cs.diff<-0.005?`<div class="sup" style="color:var(--bad)">⚠ tunai kurang ${rm(-cs.diff)}</div>`:'';
+    h+=`<div class="card hist" data-k="${k}"><div class="row"><b>${k}</b><span style="text-align:right">${rm(c.sales)}<div class="sup">untung ${rm(c.profit)}</div>${w}</span></div></div>`});
+  h+=`<h2>Tetapan Google Drive</h2><div class="card"><div class="hint">Isi sekali sahaja. Resit dan ringkasan terus masuk ke Drive akaun Google yang memasang skrip. Untuk tukar email, pasang skrip di akaun baharu dan tampal URL serta kunci baharu di sini.</div>
   <input id="du" placeholder="URL Apps Script (https://script.google.com/macros/s/.../exec)" value="${esc(dcfg().url||'')}">
   <input id="dk" placeholder="Kunci rahsia" value="${esc(dcfg().key||'')}" style="margin-top:8px">
-  <button class="sec" id="ds" style="margin-top:8px;width:100%">Simpan & uji sambungan</button><div class="hint" id="dm"></div></div>
-  `;
+  <button class="sec" id="ds" style="margin-top:8px;width:100%">Simpan &amp; uji sambungan</button><div class="hint" id="dm"></div></div>`;
   h+=`<h2>Backup data</h2><div class="card"><div class="hint">Simpan salinan data supaya tidak hilang jika telefon/browser dibersihkan. Tampal teks backup ke dalam kotak untuk pulihkan.</div>
   <textarea id="bk" rows="3" placeholder="Teks backup..."></textarea>
   <div class="row" style="margin-top:8px"><button class="sec" id="bs">Salin data</button><button class="sec" id="br">Pulihkan</button></div><div class="warn" id="bm"></div></div>`;
