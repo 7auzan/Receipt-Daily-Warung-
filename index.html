@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Kira Jualan Kedai</title>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+--bg:#faf6ef;--card:#fff;--ink:#2b2118;--mute:#7a6c5d;--line:#eadfce;--brand:#c2410c;--brandink:#fff;--good:#15803d;--soft:#fdf0e2;--bad:#dc2626}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){color-scheme:dark;--bg:#1b1612;--card:#262019;--ink:#f3ebe0;--mute:#b3a493;--line:#3a3128;--brand:#f97316;--brandink:#1b1612;--good:#4ade80;--soft:#33291f;--bad:#f87171}}
+*,*:before,*:after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding-bottom:84px}
+.wrap{max-width:640px;margin:0 auto;padding:14px}
+h1{font-size:20px;margin:4px 0 12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:10px}
+.sum{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.sum .card{margin:0}
+.sum .big{grid-column:1/-1;background:var(--brand);color:var(--brandink);border:0}
+.lbl{font-size:12px;color:var(--mute)}.big .lbl{color:inherit;opacity:.85}
+.num{font-size:22px;font-weight:700}.big .num{font-size:30px}
+.good{color:var(--good)}.big .good{color:inherit}
+input,button,textarea{font:inherit}
+input,textarea{width:100%;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink)}
+button{border:0;border-radius:10px;padding:10px 14px;background:var(--brand);color:var(--brandink);font-weight:600;cursor:pointer}
+button.sec{background:var(--soft);color:var(--ink)}button.del{background:transparent;color:var(--bad);padding:6px 10px;flex:0 0 auto}
+button.yes{background:var(--bad);color:#fff;padding:6px 10px;flex:0 0 auto}
+.row{display:flex;gap:8px;align-items:center}.row>*{flex:1}
+.item .top{display:flex;justify-content:space-between;gap:8px;margin-bottom:8px}
+.item b{font-size:17px}.sup{font-size:12px;color:var(--mute)}
+.price{text-align:right;font-weight:600;white-space:nowrap}
+.res{display:flex;justify-content:space-between;margin-top:8px;font-size:14px;color:var(--mute)}
+.res b{color:var(--ink)}
+.field span{display:block;font-size:12px;color:var(--mute);margin-bottom:2px}
+nav{position:fixed;left:0;right:0;bottom:0;display:flex;background:var(--card);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
+nav button{flex:1;background:none;color:var(--mute);border-radius:0;padding:14px 4px}
+nav button.on{color:var(--brand);box-shadow:inset 0 3px 0 var(--brand)}
+table{width:100%;border-collapse:collapse;font-size:15px}td,th{padding:7px 4px;border-bottom:1px solid var(--line);text-align:left}
+#sup th:nth-child(2),#sup td:nth-child(2){text-align:right}
+h2{font-size:16px;margin:16px 0 8px}
+.hint{font-size:13px;color:var(--mute);margin:4px 0 10px}
+.warn{font-size:13px;color:var(--bad);margin:0 0 8px}
+.ban{background:var(--bad);color:#fff;border-radius:10px;padding:8px 12px;margin-bottom:10px;font-size:14px}
+.hist{cursor:pointer}
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:50;overflow:auto;padding:14px;padding-top:calc(14px + env(safe-area-inset-top,0px))}
+.rc{max-width:420px;margin:0 auto;background:#fff;color:#111;border-radius:12px;padding:18px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:14px}
+.rc .c{text-align:center;color:#555;font-size:12px}
+.rc hr{border:0;border-top:1px dashed #999;margin:10px 0}
+.rc table td,.rc table th{border-bottom:0;padding:3px 2px;font-size:13px}
+.rc .tot{display:flex;justify-content:space-between;font-weight:700;font-size:16px}
+.rc input{background:#fff;color:#111;border:1px dashed #999;text-align:center;padding:4px}
+.acts{max-width:420px;margin:10px auto 0;display:flex;gap:8px}.acts button{flex:1}
+.ovh{max-width:420px;margin:8px auto 0;color:#fff;font-size:12px;text-align:center}
+@media print{body>*:not(.ov){display:none!important}.ov{position:static;background:none;padding:0}.acts,.ovh{display:none}.rc input{border:0}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>🍢 Kira Jualan Harian</h1>
+<div id="bn"></div>
+<div id="v"></div>
+</div>
+<nav>
+<button data-t="d" class="on">📋 Harian</button>
+<button data-t="m">🧾 Menu</button>
+<button data-t="h">📊 Rekod</button>
+</nav>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+const KEY='kedai_v1';
+const DEF_EMAIL='afauzan941@gmail.com';
+let DL=null;try{claude.use('downloads').then(x=>{DL=x}).catch(()=>{})}catch(e){}
+const today=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
+let S=load(),tab='d',date=today(),pend=null,msg='',rstPend=false;
+function load(){try{const r=localStorage.getItem(KEY);if(r){const o=JSON.parse(r);if(o&&Array.isArray(o.items)&&o.days)return o}}catch(e){}
+return{margin:0.5,days:{},items:[
+{id:1,name:'Karipap',sup:'Kak Ani',cost:0.8,m:0.5},
+{id:2,name:'Kuih Lapis',sup:'Mak Cik Som',cost:0.7,m:0.5},
+{id:3,name:'Nasi Lemak',sup:'Kak Ros',cost:1.5,m:0.5}]}}
+function save(){let ok=true;try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){ok=false}
+  $('#bn').innerHTML=ok?'':'<div class="ban">⚠ Data tidak dapat disimpan di telefon ini. Guna butang Salin data di tab Rekod untuk backup.</div>'}
+const rm=n=>'RM'+(+n||0).toFixed(2);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const $=s=>document.querySelector(s);
+const sk=it=>(it.sup||'').trim().toLowerCase();
+const sn=it=>(it.sup||'').trim()||'(Tiada nama)';
+const P=(it,r)=>({c:r&&r.c!=null?r.c:it.cost,m:r&&r.m!=null?r.m:it.m});
+const num=v=>Math.max(0,parseFloat(v)||0);
+const filled=r=>r&&r.i!==''&&r.i!=null&&r.l!==''&&r.l!=null;
+
+function calc(day){
+  let sales=0,profit=0,pay=0,bySup={};
+  S.items.forEach(it=>{
+    const r=(day||{})[it.id];if(!filled(r))return;
+    const p=P(it,r),sold=Math.max(0,num(r.i)-num(r.l));
+    sales+=sold*(p.c+p.m);pay+=sold*p.c;profit+=sold*p.m;
+    if(sold>0){const k=sk(it);const o=bySup[k]||(bySup[k]={n:sn(it),a:0});o.a+=sold*p.c}
+  });
+  return{sales,profit,pay,bySup};
+}
+
+function render(){
+  document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.t===tab));
+  ({d:daily,m:menu,h:history})[tab]();
+}
+
+function daily(){
+  const day=S.days[date]||(S.days[date]={});
+  let h=`<div class="card"><div class="field"><span>Tarikh</span><input type="date" id="dt" value="${date}"></div></div>
+  <div class="sum"><div class="card big"><div class="lbl">Jumlah Jualan</div><div class="num" id="tS">RM0.00</div></div>
+  <div class="card"><div class="lbl">Untung Kedai</div><div class="num good" id="tP">RM0.00</div></div>
+  <div class="card"><div class="lbl">Bayar Supplier</div><div class="num" id="tC">RM0.00</div></div></div>
+  <div class="warn" id="wn"></div>
+  <div class="hint">Isi <b>Dibawa</b> (stok pagi) dan <b>Baki</b> (tak habis jual) bila kedai tutup. Terjual dikira sendiri.</div>`;
+  const list=S.items.filter(it=>!it.del||filled(day[it.id]));
+  if(!list.length)h+='<div class="card">Belum ada menu. Pergi ke tab Menu untuk tambah.</div>';
+  list.forEach(it=>{
+    const r=day[it.id]||{},p=P(it,r);
+    h+=`<div class="card item"><div class="top"><div><b>${esc(it.name)}</b><div class="sup">${esc(it.sup||'')}${it.del?' · (dipadam dari menu)':''}</div></div><div class="price">${rm(p.c+p.m)}<div class="sup">asal ${rm(p.c)}</div></div></div>
+    <div class="row"><label class="field"><span>Dibawa</span><input type="number" inputmode="decimal" min="0" data-id="${it.id}" data-k="i" value="${r.i??''}"></label>
+    <label class="field"><span>Baki</span><input type="number" inputmode="decimal" min="0" data-id="${it.id}" data-k="l" value="${r.l??''}"></label></div>
+    <div class="res"><span>Terjual: <b id="s${it.id}">-</b></span><span>Jumlah: <b id="a${it.id}">-</b></span></div></div>`;
+  });
+  h+=`<h2>Bayar kepada Supplier</h2><div class="card"><table id="sup"></table></div>
+  <button class="sec" id="cp" style="width:100%">🧾 Slip / PDF ringkasan</button>`;
+  $('#v').innerHTML=h;
+  $('#dt').onchange=e=>{date=e.target.value||today();render()};
+  document.querySelectorAll('input[data-id]').forEach(el=>el.oninput=()=>{
+    const it=S.items.find(x=>x.id==el.dataset.id),d=S.days[date];
+    const r=d[it.id]||(d[it.id]={});
+    if(r.c==null){r.c=it.cost;r.m=it.m}
+    r[el.dataset.k]=el.value;save();upd()});
+  $('#cp').onclick=showSlip;
+  upd();
+}
+function upd(){
+  const day=S.days[date]||{};let inc=0;
+  S.items.forEach(it=>{
+    const r=day[it.id]||{},s=$('#s'+it.id),a=$('#a'+it.id);if(!s)return;
+    const ok=filled(r),p=P(it,r);
+    if(r.i!==''&&r.i!=null&&(r.l===''||r.l==null))inc++;
+    if(!ok){s.textContent='-';a.textContent='-';return}
+    const over=num(r.l)>num(r.i),sold=Math.max(0,num(r.i)-num(r.l));
+    s.textContent=over?'⚠ Baki > Dibawa':sold;
+    s.style.color=over?'var(--bad)':'';
+    a.textContent=rm(sold*(p.c+p.m));
+  });
+  const c=calc(day);
+  $('#tS').textContent=rm(c.sales);$('#tP').textContent=rm(c.profit);$('#tC').textContent=rm(c.pay);
+  $('#wn').textContent=inc?`⚠ ${inc} item belum diisi Baki, belum dikira.`:'';
+  const ks=Object.keys(c.bySup);
+  $('#sup').innerHTML=ks.length?'<tr><th>Supplier</th><th>Jumlah</th><th></th></tr>'+ks.map((k,i)=>`<tr><td>${esc(c.bySup[k].n)}</td><td>${rm(c.bySup[k].a)}</td><td><button class="sec" data-r="${i}" style="padding:6px 10px">🧾 Resit</button></td></tr>`).join(''):'<tr><td class="sup">Belum ada jualan dikira.</td></tr>';
+  document.querySelectorAll('button[data-r]').forEach(b=>b.onclick=()=>receipt(ks[b.dataset.r],c.bySup[ks[b.dataset.r]].n));
+}
+function copyText(t){
+  const ta=document.createElement('textarea');ta.value=t;document.body.appendChild(ta);ta.select();
+  let ok=false;try{ok=document.execCommand('copy')}catch(e){}ta.remove();return ok;
+}
+function slipLines(){
+  const day=S.days[date]||{},c=calc(day),W=32,B='-'.repeat(W);
+  const ctr=t=>{t=t.slice(0,W);return ' '.repeat(Math.floor((W-t.length)/2))+t};
+  const two=(a,b)=>{b=String(b);return a.slice(0,W-b.length-1).padEnd(W-b.length)+b};
+  const L=[ctr((S.shop||'').trim()||'KEDAI'),ctr('RINGKASAN JUALAN HARIAN'),B,'Tarikh: '+date,B,'ITEM'.padEnd(15)+'QTY'.padStart(5)+'RM'.padStart(12)];
+  let n=0;
+  S.items.forEach(it=>{const r=day[it.id];if(!filled(r))return;const p=P(it,r),q=Math.max(0,num(r.i)-num(r.l));if(!q)return;n++;
+    L.push(it.name.slice(0,15).padEnd(15)+String(q).padStart(5)+(q*(p.c+p.m)).toFixed(2).padStart(12))});
+  if(!n)L.push('Tiada jualan dikira');
+  L.push(B,two('JUMLAH JUALAN',rm(c.sales)),two('Untung',rm(c.profit)),two('Bayar supplier',rm(c.pay)),B,'BAYAR SUPPLIER:');
+  const ks=Object.values(c.bySup);
+  if(!ks.length)L.push('-');
+  ks.forEach(o=>L.push(two(o.n,rm(o.a))));
+  L.push(B,ctr('Terima kasih'));
+  return L;
+}
+function makePDF(lines){
+  const J=window.jspdf.jsPDF,lh=3.4,h=Math.max(40,lines.length*lh+12);
+  const doc=new J({unit:'mm',format:[58,h]});
+  doc.setFont('courier','normal');doc.setFontSize(7.5);
+  lines.forEach((t,i)=>doc.text(t.replace(/[^\x20-\x7E]/g,'?'),3,6+i*lh));
+  return doc.output('arraybuffer');
+}
+const dcfg=()=>{try{return JSON.parse(localStorage.getItem('kedai_drive')||'{}')}catch(e){return{}}};
+const dsave=c=>{try{localStorage.setItem('kedai_drive',JSON.stringify(c))}catch(e){}};
+function b64(buf){const u=new Uint8Array(buf);let s='';for(let i=0;i<u.length;i+=32768)s+=String.fromCharCode.apply(null,u.subarray(i,i+32768));return btoa(s)}
+async function post(body){
+  const r=await fetch(dcfg().url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body)});
+  return r.json();
+}
+async function savePDF(buf,filename){
+  if(DL){await DL.save({filename,data:buf});return}
+  const u=URL.createObjectURL(new Blob([buf],{type:'application/pdf'}));
+  const a=document.createElement('a');a.href=u;a.download=filename;document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(u),4000);
+}
+async function toDrive(buf,filename,folder,st){
+  const c=dcfg();
+  if(!c.url||!c.key){st.textContent='Tetapan Drive belum diisi. Pergi tab Rekod, bahagian Tetapan Google Drive.';return}
+  st.textContent='Menghantar ke Drive...';
+  try{
+    const j=await post({key:c.key,filename,folder,data:b64(buf)});
+    st.textContent=j.ok?'✅ Disimpan dalam Drive: '+j.path:'Gagal: '+(j.error||'tidak diketahui');
+  }catch(e){st.textContent='Gagal sambung ke Drive. Semak URL dan internet.'}
+}
+function showSlip(){
+  const can=!!window.jspdf;
+  const o=document.createElement('div');o.className='ov';
+  o.innerHTML=`<div class="acts" style="margin:0 auto 10px"><input id="shop" placeholder="Nama kedai (untuk slip)" value="${esc(S.shop||'')}"></div>
+  <div class="rc"><pre id="pre" style="margin:0;font-size:13px;line-height:1.35;white-space:pre;overflow-x:auto"></pre></div>
+  <div class="acts"><button id="rp">🖨 Cetak slip</button>${can?'<button id="dv">☁ Simpan ke Drive</button>':''}</div>
+  <div class="acts">${can?'<button class="sec" id="pdf">📄 PDF</button>':''}<button class="sec" id="rc2">📋 Salin</button><button class="sec" id="rx">Tutup</button></div>
+  <div class="ovh" id="st">${can?'':'PDF tidak tersedia di sini. '}Kalau Cetak tak berfungsi, guna PDF atau screenshot.</div>`;
+  document.body.appendChild(o);
+  const pre=o.querySelector('#pre'),sh=o.querySelector('#shop'),st=o.querySelector('#st');
+  const draw=()=>{pre.textContent=slipLines().join('\n')};draw();
+  sh.oninput=()=>{S.shop=sh.value;save();draw()};
+  o.querySelector('#rx').onclick=()=>o.remove();
+  o.querySelector('#rp').onclick=()=>{try{window.print()}catch(e){}};
+  o.querySelector('#rc2').onclick=()=>{st.textContent=copyText(slipLines().join('\n'))?'✅ Disalin!':'Gagal salin. Guna PDF atau screenshot.'};
+  const pb=o.querySelector('#pdf');
+  if(pb)pb.onclick=async()=>{
+    try{await savePDF(makePDF(slipLines()),'ringkasan-'+date+'.pdf');st.textContent='✅ PDF disimpan.'}
+    catch(e){st.textContent=e&&e.code==='declined'?'Simpan dibatalkan.':'PDF gagal disimpan. Guna Cetak atau screenshot.'}
+  };
+  const dv=o.querySelector('#dv');
+  if(dv)dv.onclick=()=>toDrive(makePDF(slipLines()),'ringkasan-'+date+'.pdf','Kedai Makan/Ringkasan Harian',st);
+}
+
+function receipt(key,name){
+  const day=S.days[date]||{};let rows='',tot=0,lines=[],pl=[];
+  S.items.filter(it=>sk(it)===key).forEach(it=>{
+    const r=day[it.id];if(!filled(r))return;
+    const q=Math.max(0,num(r.i)-num(r.l));if(!q)return;
+    const c=P(it,r).c,a=q*c;tot+=a;
+    lines.push(`${it.name} x${q} @${c.toFixed(2)} = ${a.toFixed(2)}`);
+    pl.push(it.name.slice(0,15).padEnd(15)+String(q).padStart(5)+a.toFixed(2).padStart(12));
+    rows+=`<tr><td>${esc(it.name)}</td><td style="text-align:center">${q}</td><td style="text-align:center">${c.toFixed(2)}</td><td style="text-align:right">${a.toFixed(2)}</td></tr>`;
+  });
+  const code=(key.replace(/[^a-z0-9]/g,'').slice(0,3)||'xxx').toUpperCase();
+  const no='R'+date.replace(/-/g,'')+'-'+code;
+  const can=!!window.jspdf;
+  const o=document.createElement('div');o.className='ov';
+  o.innerHTML=`<div class="rc"><input id="shop" placeholder="Nama kedai" value="${esc(S.shop||'')}" style="width:100%;font-weight:700;font-size:17px"><div class="c">RESIT BAYARAN SUPPLIER</div><hr>
+  <div>No: ${no}</div><div>Tarikh: ${date}</div><div>Supplier: <b>${esc(name)}</b></div><hr>
+  <table><tr><th style="text-align:left">Item</th><th>Qty</th><th>Harga</th><th style="text-align:right">RM</th></tr>${rows}</table><hr>
+  <div class="tot"><span>JUMLAH BAYAR</span><span>${rm(tot)}</span></div><hr>
+  <div style="display:flex;justify-content:space-between;margin-top:34px;font-size:12px"><span>_____________<br>Dibayar oleh</span><span style="text-align:right">_____________<br>Diterima oleh</span></div></div>
+  <div class="acts"><button id="rp">🖨 Cetak</button>${can?'<button id="pdf">📄 PDF (WhatsApp)</button>':''}</div>
+  <div class="acts"><button class="sec" id="rc2">📋 Salin</button><button class="sec" id="rx">Tutup</button></div>
+  <div class="ovh" id="st">${can?'':'PDF tidak tersedia di sini. '}Kalau Cetak tak berfungsi, guna Salin atau screenshot.</div>`;
+  document.body.appendChild(o);
+  const sh=o.querySelector('#shop'),st=o.querySelector('#st');sh.oninput=()=>{S.shop=sh.value;save()};
+  const rcLines=()=>{const W=32,B='-'.repeat(W);
+    const ctr=t=>{t=t.slice(0,W);return ' '.repeat(Math.floor((W-t.length)/2))+t};
+    const two=(a,b)=>a.slice(0,W-b.length-1).padEnd(W-b.length)+b;
+    return[ctr((S.shop||'').trim()||'KEDAI'),ctr('RESIT BAYARAN SUPPLIER'),B,'No: '+no,'Tarikh: '+date,'Supplier: '+name.slice(0,22),B,'ITEM'.padEnd(15)+'QTY'.padStart(5)+'RM'.padStart(12),...pl,B,two('JUMLAH BAYAR',rm(tot)),B,'','','_________   _________','Dibayar     Diterima'];};
+  o.querySelector('#rx').onclick=()=>o.remove();
+  o.querySelector('#rp').onclick=()=>{try{window.print()}catch(e){}};
+  o.querySelector('#rc2').onclick=()=>{
+    const ok=copyText(`${S.shop||'Kedai'}\nRESIT BAYARAN SUPPLIER\nNo: ${no}\nTarikh: ${date}\nSupplier: ${name}\n\n${lines.join('\n')}\n\nJUMLAH BAYAR: ${rm(tot)}`);
+    st.textContent=ok?'✅ Disalin!':'Gagal salin. Guna PDF atau screenshot.';
+  };
+  const pb=o.querySelector('#pdf');
+  if(pb)pb.onclick=async()=>{
+    try{await savePDF(makePDF(rcLines()),'resit-'+no+'.pdf');st.textContent='✅ PDF disimpan. Buka WhatsApp dan lampirkan fail itu.'}
+    catch(e){st.textContent=e&&e.code==='declined'?'Simpan dibatalkan.':'PDF gagal disimpan. Guna Cetak atau screenshot.'}
+  };
+}
+
+function menu(){
+  let h=`<div class="card"><b>Tambah makanan / kuih</b>
+  <div style="display:grid;gap:8px;margin-top:8px">
+  <input id="n" placeholder="Nama (cth: Donut)"><input id="s" placeholder="Nama supplier (cth: Kak Ani)">
+  <div class="row"><label class="field"><span>Harga asal (RM)</span><input id="c" type="number" step="0.05" min="0" inputmode="decimal"></label>
+  <label class="field"><span>Untung (RM)</span><input id="m" type="number" step="0.05" min="0" inputmode="decimal" value="${S.margin}"></label></div>
+  <div class="hint" id="pv" style="margin:0">Harga jual = harga asal + untung</div>
+  <div class="warn" id="er">${esc(msg)}</div>
+  <button id="add">+ Tambah</button></div></div><h2>Senarai Menu</h2>`;
+  msg='';
+  const list=S.items.filter(it=>!it.del);
+  if(!list.length)h+='<div class="card">Menu kosong.</div>';
+  list.forEach(it=>{
+    h+=`<div class="card item"><div class="top"><div><b>${esc(it.name)}</b><div class="sup">${esc(it.sup||'')}</div></div>
+    <div class="price" id="pl${it.id}">Jual ${rm(it.cost+it.m)}</div></div>
+    <div class="row"><label class="field"><span>Harga asal</span><input type="number" step="0.05" min="0" data-e="${it.id}" data-k="cost" value="${it.cost}"></label>
+    <label class="field"><span>Untung</span><input type="number" step="0.05" min="0" data-e="${it.id}" data-k="m" value="${it.m}"></label>
+    ${pend===it.id?`<button class="yes" data-y="${it.id}">Ya, padam</button><button class="sec" id="no" style="flex:0 0 auto;padding:6px 10px">Batal</button>`:`<button class="del" data-d="${it.id}">🗑 Padam</button>`}</div></div>`;
+  });
+  h+=`<div class="hint">Padam item hanya buang dari menu. Rekod jualan lama kekal.</div>`;
+  $('#v').innerHTML=h;
+  const pv=()=>{$('#pv').textContent='Harga jual = '+rm(num($('#c').value)+num($('#m').value))};
+  $('#c').oninput=pv;$('#m').oninput=pv;
+  $('#add').onclick=()=>{
+    const name=$('#n').value.trim(),cost=parseFloat($('#c').value),m=parseFloat($('#m').value);
+    if(!name||isNaN(cost)||cost<0){$('#er').textContent='Isi nama dan harga asal (tidak boleh negatif).';return}
+    S.margin=isNaN(m)||m<0?0.5:m;
+    S.items.push({id:Date.now(),name,sup:$('#s').value.trim(),cost,m:S.margin});save();render();
+  };
+  document.querySelectorAll('input[data-e]').forEach(el=>el.onchange=()=>{
+    const it=S.items.find(x=>x.id==el.dataset.e);it[el.dataset.k]=num(el.value);
+    const t=S.days[today()];if(t&&t[it.id]&&t[it.id].c!=null){t[it.id].c=it.cost;t[it.id].m=it.m}
+    save();$('#pl'+it.id).textContent='Jual '+rm(it.cost+it.m)});
+  document.querySelectorAll('button[data-d]').forEach(b=>b.onclick=()=>{pend=+b.dataset.d;render()});
+  document.querySelectorAll('button[data-y]').forEach(b=>b.onclick=()=>{
+    const it=S.items.find(x=>x.id==b.dataset.y);if(it)it.del=true;pend=null;save();render()});
+  const no=$('#no');if(no)no.onclick=()=>{pend=null;render()};
+}
+
+function history(){
+  const keys=Object.keys(S.days).filter(k=>Object.keys(S.days[k]).length).sort().reverse();
+  const mon=today().slice(0,7);let ms=0,mp=0,n=0;
+  keys.forEach(k=>{if(k.startsWith(mon)){const c=calc(S.days[k]);ms+=c.sales;mp+=c.profit;n++}});
+  let h=`<div class="sum"><div class="card big"><div class="lbl">Jualan bulan ini</div><div class="num">${rm(ms)}</div></div>
+  <div class="card"><div class="lbl">Untung bulan ini</div><div class="num good">${rm(mp)}</div></div>
+  <div class="card"><div class="lbl">Hari direkod</div><div class="num">${n}</div></div></div><h2>Rekod Harian</h2>`;
+  if(!keys.length)h+='<div class="card">Belum ada rekod.</div>';
+  keys.forEach(k=>{const c=calc(S.days[k]);
+    h+=`<div class="card hist" data-k="${k}"><div class="row"><b>${k}</b><span style="text-align:right">${rm(c.sales)}<div class="sup">untung ${rm(c.profit)}</div></span></div></div>`});
+  h+=`<h2>Tetapan Google Drive</h2><div class="card"><div class="hint">Isi sekali sahaja. Resit dan ringkasan akan terus masuk ke Drive akaun Google yang memasang skrip. Untuk tukar email, pasang skrip di akaun baharu dan tampal URL serta kunci baharu di sini.</div>
+  <input id="du" placeholder="URL Apps Script (https://script.google.com/macros/s/.../exec)" value="${esc(dcfg().url||'')}">
+  <input id="dk" placeholder="Kunci rahsia" value="${esc(dcfg().key||'')}" style="margin-top:8px">
+  <button class="sec" id="ds" style="margin-top:8px;width:100%">Simpan & uji sambungan</button><div class="hint" id="dm"></div></div>
+  `;
+  h+=`<h2>Backup data</h2><div class="card"><div class="hint">Simpan salinan data supaya tidak hilang jika telefon/browser dibersihkan. Tampal teks backup ke dalam kotak untuk pulihkan.</div>
+  <textarea id="bk" rows="3" placeholder="Teks backup..."></textarea>
+  <div class="row" style="margin-top:8px"><button class="sec" id="bs">Salin data</button><button class="sec" id="br">Pulihkan</button></div><div class="warn" id="bm"></div></div>`;
+  $('#v').innerHTML=h;
+  document.querySelectorAll('.hist').forEach(el=>el.onclick=()=>{date=el.dataset.k;tab='d';render()});
+  $('#ds').onclick=async()=>{
+    const url=$('#du').value.trim(),key=$('#dk').value.trim(),m=$('#dm');
+    if(!/^https:\/\/script\.google\.com\/\S+/.test(url)||!key){m.textContent='Isi URL (bermula https://script.google.com/) dan kunci rahsia.';return}
+    dsave({url,key});m.textContent='Menguji...';
+    try{const j=await post({key,action:'ping'});m.textContent=j.ok?'✅ Disambung ke akaun: '+j.email:'Gagal: '+(j.error||'kunci salah?')}
+    catch(e){m.textContent='Tidak dapat sambung. Semak URL dan pastikan akses ditetapkan kepada Anyone.'}
+  };
+  $('#bs').onclick=()=>{const t=JSON.stringify(S);$('#bk').value=t;$('#bm').textContent=copyText(t)?'Disalin. Simpan dalam WhatsApp / Notes.':'Tekan lama kotak teks untuk salin.'};
+  $('#br').onclick=()=>{
+    if(!rstPend){rstPend=true;$('#br').textContent='Pasti? Tekan lagi (ganti semua data)';return}
+    rstPend=false;$('#br').textContent='Pulihkan';
+    try{const o=JSON.parse($('#bk').value);if(!o||!Array.isArray(o.items)||typeof o.days!=='object')throw 0;S=o;save();render()}
+    catch(e){$('#bm').textContent='Teks backup tidak sah.'}};
+}
+
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{tab=b.dataset.t;pend=null;render()});
+render();
+</script>
+</body>
+</html>
